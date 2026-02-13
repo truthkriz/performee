@@ -1,40 +1,128 @@
 
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>PERFORMEE - Digital Songbook</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <style>
-    body {
-      font-family: 'Inter', sans-serif;
-      background-color: #0a0f1d;
-      color: #f8fafc;
+import React, { useState, useEffect } from 'react';
+import { Song, AppView } from './types';
+import { INITIAL_SONGS } from './constants';
+import SongLibrary from './components/SongLibrary';
+import SongViewer from './components/SongViewer';
+import SongEditor from './components/SongEditor';
+import { Music, LayoutGrid, ListMusic, User, Info, Download, Upload } from 'lucide-react';
+
+const App: React.FC = () => {
+  const [view, setView] = useState<AppView>('library');
+  const [songs, setSongs] = useState<Song[]>([]);
+  const [activeSong, setActiveSong] = useState<Song | null>(null);
+
+  // Load dari LocalStorage saat startup
+  useEffect(() => {
+    const saved = localStorage.getItem('performee_songs');
+    if (saved) {
+      try {
+        setSongs(JSON.parse(saved));
+      } catch (e) {
+        setSongs(INITIAL_SONGS);
+      }
+    } else {
+      setSongs(INITIAL_SONGS);
     }
-    .chord-font {
-      font-family: 'JetBrains Mono', monospace;
+  }, []);
+
+  // Simpan otomatis ke LocalStorage tiap ada perubahan
+  useEffect(() => {
+    if (songs.length > 0) {
+      localStorage.setItem('performee_songs', JSON.stringify(songs));
     }
-    ::-webkit-scrollbar { width: 8px; }
-    ::-webkit-scrollbar-track { background: #0a0f1d; }
-    ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 4px; }
-    ::-webkit-scrollbar-thumb:hover { background: #334155; }
-  </style>
-<script type="importmap">
-{
-  "imports": {
-    "lucide-react": "https://esm.sh/lucide-react@^0.563.0",
-    "react-dom/": "https://esm.sh/react-dom@^19.2.4/",
-    "@google/genai": "https://esm.sh/@google/genai@^1.41.0",
-    "react": "https://esm.sh/react@^19.2.4",
-    "react/": "https://esm.sh/react@^19.2.4/",
-    "firebase/": "https://esm.sh/firebase@^12.9.0/"
-  }
-}
-</script>
-</head>
-<body>
-  <div id="root"></div>
-</body>
-</html>
+  }, [songs]);
+
+  const handleSaveSong = (newSong: Song) => {
+    setSongs(prev => {
+      const exists = prev.find(s => s.id === newSong.id);
+      if (exists) return prev.map(s => s.id === newSong.id ? newSong : s);
+      return [newSong, ...prev];
+    });
+    setView('library');
+  };
+
+  const handleImportSongs = (importedSongs: Song[]) => {
+    setSongs(prev => {
+      // Menghindari duplikasi ID saat import
+      const existingIds = new Set(prev.map(s => s.id));
+      const newSongs = importedSongs.filter(s => !existingIds.has(s.id));
+      return [...newSongs, ...prev];
+    });
+    alert(`${importedSongs.length} lagu berhasil di-import!`);
+  };
+
+  return (
+    <div className="flex h-screen overflow-hidden bg-[#0a0f1d] text-slate-200">
+      {/* Sidebar Navigasi */}
+      <nav className="w-20 md:w-64 bg-[#111827] border-r border-slate-800/50 flex flex-col py-8">
+        <div className="px-6 mb-12 flex items-center gap-3">
+          <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/20">
+            <Music className="text-white w-6 h-6" />
+          </div>
+          <span className="hidden md:block text-xl font-bold tracking-tight text-white uppercase">PERFORMEE</span>
+        </div>
+
+        <div className="flex-1 px-4 space-y-4">
+          <button 
+            onClick={() => setView('library')}
+            className={`w-full flex items-center gap-4 px-4 py-3 rounded-xl transition-all ${view === 'library' ? 'bg-indigo-600 text-white shadow-lg' : 'hover:bg-slate-800/50 text-slate-400'}`}
+          >
+            <LayoutGrid className="w-5 h-5" />
+            <span className="hidden md:block font-medium">Library</span>
+          </button>
+          
+          <button className="w-full flex items-center gap-4 px-4 py-3 rounded-xl hover:bg-slate-800/50 text-slate-400 transition-all">
+            <ListMusic className="w-5 h-5" />
+            <span className="hidden md:block font-medium text-slate-500">Setlists</span>
+          </button>
+        </div>
+
+        <div className="px-4 mt-auto space-y-2 pt-6 border-t border-slate-800/50">
+          <div className="flex items-center gap-4 px-4 py-3 text-slate-400">
+            <User className="w-5 h-5" />
+            <span className="hidden md:block font-medium text-sm">Creator: Rizkiprato</span>
+          </div>
+          
+          <button className="w-full flex items-center gap-4 px-4 py-3 rounded-xl hover:bg-slate-800/50 text-slate-400 transition-all">
+            <Info className="w-5 h-5" />
+            <span className="hidden md:block font-medium">About</span>
+          </button>
+        </div>
+      </nav>
+
+      {/* Main Content Area */}
+      <main className="flex-1 overflow-y-auto bg-[#0a0f1d] relative">
+        {view === 'library' && (
+          <SongLibrary 
+            songs={songs} 
+            onSelectSong={(s) => { setActiveSong(s); setView('song-view'); }} 
+            onAddSong={() => { setActiveSong(null); setView('song-edit'); }}
+            onEditSong={(s) => { setActiveSong(s); setView('song-edit'); }}
+            onImportLibrary={handleImportSongs}
+          />
+        )}
+
+        {view === 'song-view' && activeSong && (
+          <SongViewer 
+            song={activeSong} 
+            onBack={() => setView('library')} 
+            onEdit={() => setView('song-edit')}
+          />
+        )}
+
+        {view === 'song-edit' && (
+          <div className="p-8">
+            <SongEditor 
+              song={activeSong || undefined} 
+              onSave={handleSaveSong} 
+              onCancel={() => setView('library')} 
+            />
+          </div>
+        )}
+      </main>
+    </div>
+  );
+};
+
+export default App;
