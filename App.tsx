@@ -11,7 +11,6 @@ const App: React.FC = () => {
   const [songs, setSongs] = useState<Song[]>([]);
   const [activeSong, setActiveSong] = useState<Song | null>(null);
 
-  // Load from LocalStorage
   useEffect(() => {
     const saved = localStorage.getItem('performee_songs');
     if (saved) {
@@ -25,7 +24,6 @@ const App: React.FC = () => {
     }
   }, []);
 
-  // Save to LocalStorage
   useEffect(() => {
     if (songs.length > 0) {
       localStorage.setItem('performee_songs', JSON.stringify(songs));
@@ -43,7 +41,7 @@ const App: React.FC = () => {
   };
 
   const handleDeleteSong = (id: string) => {
-    if (window.confirm("Hapus lagu ini dari library?")) {
+    if (window.confirm("Hapus lagu ini dari library selamanya?")) {
       setSongs(prev => prev.filter(s => s.id !== id));
       if (activeSong?.id === id) setActiveSong(null);
     }
@@ -55,13 +53,12 @@ const App: React.FC = () => {
       const newSongs = importedSongs.filter(s => !existingIds.has(s.id));
       return [...newSongs, ...prev];
     });
-    alert(`${importedSongs.length} lagu berhasil ditambahkan!`);
   };
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[#0a0f1d] text-slate-200">
-      {/* Sidebar - Compact & Static */}
-      <nav className="w-16 md:w-64 bg-[#0f172a] border-r border-slate-800/50 flex flex-col py-6">
+    <div className="flex h-screen w-full overflow-hidden bg-[#0a0f1d] text-slate-200">
+      {/* Sidebar - Compact Fixed */}
+      <nav className="w-16 md:w-64 bg-[#0f172a] border-r border-slate-800 flex flex-col py-6 shrink-0">
         <div className="px-4 md:px-6 mb-10 flex items-center gap-3">
           <div className="w-8 h-8 md:w-10 md:h-10 bg-indigo-600 rounded-lg flex items-center justify-center shadow-lg shadow-indigo-500/20">
             <Music className="text-white w-5 h-5 md:w-6 md:h-6" />
@@ -78,7 +75,7 @@ const App: React.FC = () => {
             <span className="hidden md:block font-medium">Library</span>
           </button>
           
-          <button className="w-full flex items-center justify-center md:justify-start gap-4 px-3 py-3 rounded-xl hover:bg-slate-800/50 text-slate-400 transition-all opacity-40 cursor-not-allowed">
+          <button className="w-full flex items-center justify-center md:justify-start gap-4 px-3 py-3 rounded-xl hover:bg-slate-800/50 text-slate-400 transition-all opacity-20 cursor-not-allowed">
             <ListMusic className="w-5 h-5" />
             <span className="hidden md:block font-medium">Setlists</span>
           </button>
@@ -89,16 +86,11 @@ const App: React.FC = () => {
             <User className="w-5 h-5" />
             <span className="hidden md:block font-medium text-[10px] truncate">Creator: Rizkiprato</span>
           </div>
-          
-          <button className="w-full flex items-center justify-center md:justify-start gap-4 px-3 py-3 rounded-xl hover:bg-slate-800/50 text-slate-400 transition-all">
-            <Info className="w-5 h-5" />
-            <span className="hidden md:block font-medium">About</span>
-          </button>
         </div>
       </nav>
 
-      {/* Main Content Area */}
-      <main className="flex-1 overflow-hidden flex flex-col bg-[#0a0f1d]">
+      {/* Main Container */}
+      <main className="flex-1 flex flex-col overflow-hidden bg-[#0a0f1d] relative">
         {view === 'library' && (
           <SongLibrary 
             songs={songs} 
@@ -119,7 +111,7 @@ const App: React.FC = () => {
         )}
 
         {view === 'song-edit' && (
-          <div className="flex-1 overflow-y-auto p-4 md:p-8">
+          <div className="flex-1 overflow-y-auto p-4 md:p-8 bg-slate-950/20">
             <SongEditor 
               song={activeSong || undefined} 
               onSave={handleSaveSong} 
