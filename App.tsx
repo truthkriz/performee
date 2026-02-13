@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Song, AppView } from './types';
 import { INITIAL_SONGS } from './constants';
@@ -12,98 +11,93 @@ const App: React.FC = () => {
   const [songs, setSongs] = useState<Song[]>([]);
   const [activeSong, setActiveSong] = useState<Song | null>(null);
 
-  // Load from local storage on mount
+  // Load from LocalStorage on startup
   useEffect(() => {
-    const saved = localStorage.getItem('chordflow_songs');
+    const saved = localStorage.getItem('performee_songs');
     if (saved) {
-      setSongs(JSON.parse(saved));
+      try {
+        setSongs(JSON.parse(saved));
+      } catch (e) {
+        setSongs(INITIAL_SONGS);
+      }
     } else {
       setSongs(INITIAL_SONGS);
     }
   }, []);
 
-  // Sync to local storage
+  // Auto-save to LocalStorage
   useEffect(() => {
     if (songs.length > 0) {
-      localStorage.setItem('chordflow_songs', JSON.stringify(songs));
+      localStorage.setItem('performee_songs', JSON.stringify(songs));
     }
   }, [songs]);
 
   const handleSaveSong = (newSong: Song) => {
     setSongs(prev => {
       const exists = prev.find(s => s.id === newSong.id);
-      if (exists) {
-        return prev.map(s => s.id === newSong.id ? newSong : s);
-      }
+      if (exists) return prev.map(s => s.id === newSong.id ? newSong : s);
       return [newSong, ...prev];
     });
     setView('library');
   };
 
-  const handleSelectSong = (song: Song) => {
-    setActiveSong(song);
-    setView('song-view');
-  };
-
-  const handleEditSong = (song: Song) => {
-    setActiveSong(song);
-    setView('song-edit');
-  };
-
-  const handleAddNew = () => {
-    setActiveSong(null);
-    setView('song-edit');
+  const handleImportSongs = (importedSongs: Song[]) => {
+    setSongs(prev => {
+      const existingIds = new Set(prev.map(s => s.id));
+      const newSongs = importedSongs.filter(s => !existingIds.has(s.id));
+      return [...newSongs, ...prev];
+    });
+    alert(`${importedSongs.length} songs imported successfully!`);
   };
 
   return (
-    <div className="flex h-screen overflow-hidden bg-slate-950 text-slate-200">
-      {/* Sidebar Navigation */}
-      <nav className="w-20 md:w-64 bg-slate-900 border-r border-slate-800 flex flex-col py-6">
-        <div className="px-6 mb-10 flex items-center gap-3">
-          <div className="w-8 h-8 md:w-10 md:h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/20">
-            <Music className="text-white w-5 h-5 md:w-6 md:h-6" />
+    <div className="flex h-screen overflow-hidden bg-[#0a0f1d] text-slate-200">
+      {/* Sidebar - Matching User Screenshot */}
+      <nav className="w-20 md:w-64 bg-[#111827] border-r border-slate-800/50 flex flex-col py-8">
+        <div className="px-6 mb-12 flex items-center gap-3">
+          <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/20">
+            <Music className="text-white w-6 h-6" />
           </div>
-          <span className="hidden md:block text-xl font-black tracking-tight text-white">PERFORMEE</span>
+          <span className="hidden md:block text-xl font-bold tracking-tight text-white uppercase">PERFORMEE</span>
         </div>
 
-        <div className="flex-1 px-4 space-y-2">
+        <div className="flex-1 px-4 space-y-4">
           <button 
             onClick={() => setView('library')}
-            className={`w-full flex items-center gap-4 px-4 py-3 rounded-xl transition-all ${view === 'library' ? 'bg-indigo-600 text-white shadow-lg' : 'hover:bg-slate-800 text-slate-400'}`}
+            className={`w-full flex items-center gap-4 px-4 py-3 rounded-xl transition-all ${view === 'library' ? 'bg-indigo-600 text-white shadow-lg' : 'hover:bg-slate-800/50 text-slate-400'}`}
           >
             <LayoutGrid className="w-5 h-5" />
-            <span className="hidden md:block font-semibold">Library</span>
+            <span className="hidden md:block font-medium">Library</span>
           </button>
           
-          <button 
-            className="w-full flex items-center gap-4 px-4 py-3 rounded-xl hover:bg-slate-800 text-slate-400 transition-all opacity-50 cursor-not-allowed"
-            title="Coming Soon"
-          >
+          <button className="w-full flex items-center gap-4 px-4 py-3 rounded-xl hover:bg-slate-800/50 text-slate-400 transition-all cursor-not-allowed opacity-50">
             <ListMusic className="w-5 h-5" />
-            <span className="hidden md:block font-semibold">Setlists</span>
+            <span className="hidden md:block font-medium">Setlists</span>
           </button>
         </div>
 
-        <div className="px-4 pt-6 border-t border-slate-800 space-y-2">
-          <button className="w-full flex items-center gap-4 px-4 py-3 rounded-xl hover:bg-slate-800 text-slate-400 transition-all opacity-50 cursor-not-allowed">
+        <div className="px-4 mt-auto space-y-2 pt-6 border-t border-slate-800/50">
+          <div className="flex items-center gap-4 px-4 py-3 text-slate-400">
             <User className="w-5 h-5" />
-            <span className="hidden md:block font-semibold">Profile</span>
-          </button>
-          <button className="w-full flex items-center gap-4 px-4 py-3 rounded-xl hover:bg-slate-800 text-slate-400 transition-all opacity-50 cursor-not-allowed">
+            <span className="hidden md:block font-medium text-sm">Creator: Rizkiprato</span>
+          </div>
+          
+          <button className="w-full flex items-center gap-4 px-4 py-3 rounded-xl hover:bg-slate-800/50 text-slate-400 transition-all">
             <Info className="w-5 h-5" />
-            <span className="hidden md:block font-semibold">About</span>
+            <span className="hidden md:block font-medium">About</span>
           </button>
         </div>
       </nav>
 
-      {/* Main Content Area */}
-      <main className="flex-1 overflow-y-auto bg-slate-950 relative">
+      {/* Main Content */}
+      <main className="flex-1 overflow-y-auto bg-[#0a0f1d] relative">
         {view === 'library' && (
           <SongLibrary 
             songs={songs} 
-            onSelectSong={handleSelectSong} 
-            onAddSong={handleAddNew}
-            onEditSong={handleEditSong}
+            onSelectSong={(s) => { setActiveSong(s); setView('song-view'); }} 
+            onAddSong={() => { setActiveSong(null); setView('song-edit'); }}
+            onEditSong={(s) => { setActiveSong(s); setView('song-edit'); }}
+            onImportLibrary={handleImportSongs}
           />
         )}
 
