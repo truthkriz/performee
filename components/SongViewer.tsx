@@ -45,24 +45,22 @@ const SongViewer: React.FC<SongViewerProps> = ({ song, onBack, onEdit }) => {
     : song.sections;
 
   const renderContent = (content: string) => {
-    // Transpose the text first
     const transposed = transposeText(content, transpose);
-    
-    // Split into lines and render using pre-wrap to preserve spacing
-    // We wrap chords in spans for coloring
     const lines = transposed.split('\n');
     
     return (
-      <div className="chord-font leading-relaxed">
+      <div className="chord-font leading-relaxed tracking-tight">
         {lines.map((line, idx) => {
-          // Identify chords to highlight them
+          // Identify chords to highlight them in the viewer
           // Matches bracketed [G] or common standalone chord patterns
-          const parts = line.split(/(\[[^\]]+\]|\b[A-G][#b]?(?:m|maj|min|aug|dim|sus|add|M)?(?:\d+)?(?:(?:\/)[A-G][#b]?)?\b)/g);
+          // We use the same regex logic as transposeText to ensure consistency
+          const parts = line.split(/(\[[^\]]+\]|\b[A-G][#b]?(?:m|maj|min|aug|dim|sus|add|M)?(?:\d+)?(?:(?:\/)[A-G][#b]?)?)/g);
           
           return (
-            <div key={idx} className="whitespace-pre-wrap min-h-[1.2em]">
+            <div key={idx} className="whitespace-pre min-h-[1.2em]">
               {parts.map((part, pIdx) => {
                 const isBracketed = part.startsWith('[') && part.endsWith(']');
+                // Check for naked chord, but be careful of word boundaries
                 const isNakedChord = /^[A-G][#b]?(?:m|maj|min|aug|dim|sus|add|M)?(?:\d+)?(?:(?:\/)[A-G][#b]?)?$/.test(part);
                 
                 if (isBracketed || isNakedChord) {
@@ -161,26 +159,6 @@ const SongViewer: React.FC<SongViewerProps> = ({ song, onBack, onEdit }) => {
             </div>
           ))}
           <div className="h-96" />
-        </div>
-      </div>
-
-      <div className="fixed right-6 top-32 bottom-32 w-12 flex flex-col items-center justify-center gap-2 opacity-30 hover:opacity-100 transition-opacity pointer-events-none sm:pointer-events-auto">
-        <div className="bg-slate-800 border border-slate-700 rounded-full p-2 flex flex-col gap-2 shadow-2xl">
-          {displaySections.map((s, idx) => (
-            <div 
-              key={idx} 
-              title={s?.name}
-              className="w-8 h-8 rounded-full bg-slate-900 border border-slate-700 flex items-center justify-center text-[10px] font-bold text-slate-500 hover:bg-indigo-600 hover:text-white cursor-pointer transition-all pointer-events-auto"
-              onClick={() => {
-                const elements = scrollRef.current?.querySelectorAll('.group');
-                if (elements && elements[idx]) {
-                  elements[idx].scrollIntoView({ behavior: 'smooth' });
-                }
-              }}
-            >
-              {s?.name?.substring(0, 1)}
-            </div>
-          ))}
         </div>
       </div>
     </div>
