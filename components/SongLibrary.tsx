@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from 'react';
 import { Song } from '../types';
 import { Search, Music, Plus, Clock, Hash, PlayCircle, Download, Upload, CheckSquare, Square, X } from 'lucide-react';
@@ -23,7 +22,6 @@ const SongLibrary: React.FC<SongLibraryProps> = ({ songs, onSelectSong, onAddSon
   );
 
   const toggleSongSelection = (id: string, e: React.MouseEvent) => {
-    if (!selectionMode) return;
     e.stopPropagation();
     const newSelected = new Set(selectedIds);
     if (newSelected.has(id)) newSelected.delete(id);
@@ -33,17 +31,20 @@ const SongLibrary: React.FC<SongLibraryProps> = ({ songs, onSelectSong, onAddSon
 
   const handleExport = () => {
     const songsToExport = songs.filter(s => selectedIds.has(s.id));
-    if (songsToExport.length === 0) return alert("Pilih minimal satu lagu untuk diexport!");
+    if (songsToExport.length === 0) {
+      alert("Please select at least one song to export!");
+      return;
+    }
 
-    const blob = new Blob([JSON.stringify(songsToExport, null, 2)], { type: 'application/json' });
+    const dataStr = JSON.stringify(songsToExport, null, 2);
+    const blob = new Blob([dataStr], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `performee-export-${new Date().toISOString().split('T')[0]}.json`;
-    a.click();
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `performee-export-${new Date().toISOString().split('T')[0]}.json`;
+    link.click();
     URL.revokeObjectURL(url);
     
-    // Reset selection after export
     setSelectionMode(false);
     setSelectedIds(new Set());
   };
@@ -63,17 +64,17 @@ const SongLibrary: React.FC<SongLibraryProps> = ({ songs, onSelectSong, onAddSon
         if (Array.isArray(imported)) {
           onImportLibrary(imported);
         } else {
-          alert("Format file tidak valid.");
+          alert("Invalid export file format.");
         }
       } catch (err) {
-        alert("Gagal membaca file export.");
+        alert("Failed to read the file.");
       }
     };
     reader.readAsText(file);
-    e.target.value = ''; // Reset input
+    e.target.value = ''; 
   };
 
-  const selectAll = () => {
+  const toggleSelectAll = () => {
     if (selectedIds.size === filteredSongs.length) {
       setSelectedIds(new Set());
     } else {
@@ -83,7 +84,7 @@ const SongLibrary: React.FC<SongLibraryProps> = ({ songs, onSelectSong, onAddSon
 
   return (
     <div className="p-10 max-w-7xl mx-auto">
-      {/* Header Utama */}
+      {/* Header section based on screenshot */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-12">
         <div className="space-y-1">
           <h1 className="text-5xl font-bold text-white tracking-tight">My Songbook</h1>
@@ -96,7 +97,7 @@ const SongLibrary: React.FC<SongLibraryProps> = ({ songs, onSelectSong, onAddSon
               <button 
                 onClick={handleImportTrigger}
                 className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-slate-300 px-5 py-3 rounded-2xl font-bold transition-all"
-                title="Import lagu dari file JSON"
+                title="Import songs from JSON"
               >
                 <Upload className="w-5 h-5" />
                 <span className="hidden sm:inline">Import</span>
@@ -104,7 +105,7 @@ const SongLibrary: React.FC<SongLibraryProps> = ({ songs, onSelectSong, onAddSon
               <button 
                 onClick={() => setSelectionMode(true)}
                 className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-slate-300 px-5 py-3 rounded-2xl font-bold transition-all"
-                title="Pilih lagu untuk diexport"
+                title="Select songs to export"
               >
                 <Download className="w-5 h-5" />
                 <span className="hidden sm:inline">Export</span>
@@ -119,12 +120,12 @@ const SongLibrary: React.FC<SongLibraryProps> = ({ songs, onSelectSong, onAddSon
             </>
           ) : (
             <div className="flex items-center gap-3 bg-indigo-600/10 border border-indigo-500/20 p-2 rounded-2xl">
-              <span className="px-4 text-sm font-bold text-indigo-400">{selectedIds.size} dipilih</span>
-              <button onClick={selectAll} className="text-xs font-bold bg-slate-800 hover:bg-slate-700 px-3 py-2 rounded-xl">
-                {selectedIds.size === filteredSongs.length ? 'Batal Semua' : 'Pilih Semua'}
+              <span className="px-4 text-sm font-bold text-indigo-400">{selectedIds.size} Selected</span>
+              <button onClick={toggleSelectAll} className="text-xs font-bold bg-slate-800 hover:bg-slate-700 px-3 py-2 rounded-xl">
+                {selectedIds.size === filteredSongs.length ? 'Deselect All' : 'Select All'}
               </button>
               <button onClick={handleExport} className="bg-indigo-600 hover:bg-indigo-500 px-4 py-2 rounded-xl text-xs font-bold">
-                Export Sekarang
+                Export
               </button>
               <button onClick={() => { setSelectionMode(false); setSelectedIds(new Set()); }} className="p-2 hover:bg-slate-800 rounded-xl">
                 <X className="w-4 h-4 text-slate-500" />
@@ -134,7 +135,6 @@ const SongLibrary: React.FC<SongLibraryProps> = ({ songs, onSelectSong, onAddSon
         </div>
       </div>
 
-      {/* Hidden File Input */}
       <input 
         type="file" 
         ref={fileInputRef} 
@@ -143,7 +143,6 @@ const SongLibrary: React.FC<SongLibraryProps> = ({ songs, onSelectSong, onAddSon
         className="hidden" 
       />
 
-      {/* Search Bar */}
       <div className="relative mb-10">
         <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
         <input 
@@ -155,7 +154,6 @@ const SongLibrary: React.FC<SongLibraryProps> = ({ songs, onSelectSong, onAddSon
         />
       </div>
 
-      {/* Grid Lagu */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         {filteredSongs.map(song => {
           const isSelected = selectedIds.has(song.id);
@@ -174,7 +172,7 @@ const SongLibrary: React.FC<SongLibraryProps> = ({ songs, onSelectSong, onAddSon
                   <Music className="w-7 h-7" />
                 </div>
                 {selectionMode && (
-                  <div onClick={(e) => toggleSongSelection(song.id, e)} className="p-2">
+                  <div onClick={(e) => toggleSongSelection(song.id, e)} className="p-1">
                     {isSelected ? (
                       <CheckSquare className="w-6 h-6 text-indigo-500" />
                     ) : (
