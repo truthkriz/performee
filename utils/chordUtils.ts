@@ -14,7 +14,7 @@ const getNoteIndex = (note: string): number => {
 };
 
 export const transposeChord = (chord: string, semitones: number): string => {
-  // Regex presisi: Grup 1 adalah Root (A-G plus opsional # atau b), Grup 2 adalah sisa suffix (m7b5, etc)
+  // Regex untuk memisahkan Root (A-G#) dari Suffix (m7b5, etc)
   const match = chord.match(/^([A-G][#b]?)(.*)$/);
   if (!match) return chord;
 
@@ -26,21 +26,36 @@ export const transposeChord = (chord: string, semitones: number): string => {
 
   const newIndex = (rootIndex + semitones + 120) % 12;
   
-  // Gunakan CHORD_ROOTS (sharps) sebagai standar output
+  // Kembalikan chord baru dengan suffix yang sama
   return CHORD_ROOTS[newIndex] + suffix;
 };
 
 export const transposeText = (text: string, semitones: number): string => {
   if (semitones === 0) return text;
 
-  // Tangani chord di dalam kurung [C#m7b5]
+  // 1. Tangani chord di dalam kurung [C#m7b5]
   const bracketRegex = /\[([^\]]+)\]/g;
   let processed = text.replace(bracketRegex, (match, p1) => {
-    // Tangani slash chords seperti [C/E]
     const parts = p1.split('/');
     const transposedParts = parts.map((part: string) => transposeChord(part.trim(), semitones));
     return `[${transposedParts.join('/')}]`;
   });
 
-  return processed;
+  // 2. Tangani chord tanpa kurung (naked chords) per kata
+  const lines = processed.split('\n');
+  return lines.map(line => {
+    // Jika baris mengandung kurung, kita anggap sudah terproses oleh regex di atas
+    if (line.includes('[')) return line;
+
+    // Deteksi apakah sebuah kata adalah chord (Regex Chord Kompleks)
+    const chordWordRegex = /^[A-G][#b]?(?:maj|min|m|M|dim|aug|sus|add|Δ|ø|°|[0-9\(\)\+#b\-\/])*$/;
+    
+    return line.split(/(\s+)/).map(segment => {
+      if (chordWordRegex.test(segment) && segment.length > 0) {
+        const parts = segment.split('/');
+        return parts.map(p => transposeChord(p, semitones)).join('/');
+      }
+      return segment;
+    }).join('');
+  }).join('\n');
 };
