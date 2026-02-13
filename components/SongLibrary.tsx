@@ -1,6 +1,6 @@
 import React, { useState, useRef, useMemo } from 'react';
 import { Song } from '../types';
-import { Search, Music, Plus, Clock, Hash, Download, Upload, CheckSquare, Square, X, Edit2, Trash2, MoreVertical } from 'lucide-react';
+import { Search, Music, Plus, Download, Upload, CheckSquare, Square, X, Edit2, Trash2 } from 'lucide-react';
 
 interface SongLibraryProps {
   songs: Song[];
@@ -19,7 +19,7 @@ const SongLibrary: React.FC<SongLibraryProps> = ({ songs, onSelectSong, onAddSon
 
   // Sorting A-Z berdasarkan Judul
   const sortedAndFilteredSongs = useMemo(() => {
-    return songs
+    return [...songs]
       .filter(s => 
         s.title.toLowerCase().includes(search.toLowerCase()) || 
         s.artist.toLowerCase().includes(search.toLowerCase())
@@ -35,19 +35,26 @@ const SongLibrary: React.FC<SongLibraryProps> = ({ songs, onSelectSong, onAddSon
     setSelectedIds(newSelected);
   };
 
+  const handleSelectAll = () => {
+    if (selectedIds.size === sortedAndFilteredSongs.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(sortedAndFilteredSongs.map(s => s.id)));
+    }
+  };
+
   const handleExport = () => {
     const songsToExport = songs.filter(s => selectedIds.has(s.id));
-    if (songsToExport.length === 0) {
-      alert("Pilih lagu untuk diexport!");
-      return;
-    }
+    if (songsToExport.length === 0) return alert("Pilih minimal satu lagu untuk diexport!");
+    
     const dataStr = JSON.stringify(songsToExport, null, 2);
     const blob = new Blob([dataStr], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `performee-songs.json`;
+    link.download = `performee-export-${new Date().toISOString().split('T')[0]}.json`;
     link.click();
+    
     setSelectionMode(false);
     setSelectedIds(new Set());
   };
@@ -61,63 +68,59 @@ const SongLibrary: React.FC<SongLibraryProps> = ({ songs, onSelectSong, onAddSon
     reader.onload = (event) => {
       try {
         const imported = JSON.parse(event.target?.result as string);
-        if (Array.isArray(imported)) onImportLibrary(imported);
-      } catch (err) { alert("File tidak valid."); }
+        if (Array.isArray(imported)) {
+          onImportLibrary(imported);
+        }
+      } catch (err) { alert("Format file JSON tidak dikenali."); }
     };
     reader.readAsText(file);
     e.target.value = ''; 
   };
 
   return (
-    <div className="flex flex-col h-full">
-      {/* Header - Compact */}
-      <div className="px-6 py-6 border-b border-slate-800 bg-[#0f172a]/50">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+    <div className="flex flex-col h-full bg-[#0a0f1d] overflow-hidden">
+      {/* Header - Fixed Height */}
+      <div className="px-6 pt-6 pb-4 border-b border-slate-800 bg-[#0f172a]/30">
+        <div className="flex justify-between items-center mb-6">
           <div>
-            <h1 className="text-3xl font-bold text-white tracking-tight">Library</h1>
-            <p className="text-xs text-slate-500 font-medium uppercase tracking-widest mt-1">{songs.length} Total Repertoire</p>
+            <h1 className="text-2xl font-bold text-white tracking-tight">Library Lagu</h1>
+            <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest mt-1">{songs.length} Repertoire</p>
           </div>
           
-          <div className="flex items-center gap-2 w-full md:w-auto">
+          <div className="flex items-center gap-2">
             {!selectionMode ? (
               <>
-                <button 
-                  onClick={handleImportTrigger}
-                  className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2 rounded-xl text-sm font-bold transition-all"
-                >
+                <button onClick={handleImportTrigger} className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2 rounded-xl text-xs font-bold transition-all">
                   <Upload className="w-4 h-4" /> Import
                 </button>
-                <button 
-                  onClick={() => setSelectionMode(true)}
-                  className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2 rounded-xl text-sm font-bold transition-all"
-                >
+                <button onClick={() => setSelectionMode(true)} className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2 rounded-xl text-xs font-bold transition-all">
                   <Download className="w-4 h-4" /> Export
                 </button>
-                <button 
-                  onClick={onAddSong}
-                  className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 px-5 py-2 rounded-xl text-sm font-bold shadow-lg shadow-indigo-600/20 transition-all active:scale-95"
-                >
-                  <Plus className="w-4 h-4" /> Add New
+                <button onClick={onAddSong} className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 px-5 py-2 rounded-xl text-xs font-bold shadow-lg shadow-indigo-600/20 transition-all active:scale-95">
+                  <Plus className="w-4 h-4" /> Tambah Lagu
                 </button>
               </>
             ) : (
-              <div className="flex items-center gap-2 bg-indigo-600/10 border border-indigo-500/20 p-1.5 rounded-xl">
-                <span className="px-3 text-xs font-bold text-indigo-400">{selectedIds.size} Selected</span>
-                <button onClick={handleExport} className="bg-indigo-600 hover:bg-indigo-500 px-4 py-1.5 rounded-lg text-xs font-bold">Export</button>
-                <button onClick={() => { setSelectionMode(false); setSelectedIds(new Set()); }} className="p-1.5 hover:bg-slate-800 rounded-lg">
-                  <X className="w-4 h-4 text-slate-500" />
+              <div className="flex items-center gap-2 bg-indigo-600/10 border border-indigo-500/20 p-1 rounded-xl">
+                <button onClick={handleSelectAll} className="px-3 py-1.5 text-[10px] font-black uppercase text-indigo-400 hover:bg-indigo-500/10 rounded-lg transition-all">
+                  {selectedIds.size === sortedAndFilteredSongs.length ? 'Deselect All' : 'Select All'}
+                </button>
+                <div className="w-px h-4 bg-slate-800 mx-1"></div>
+                <button onClick={handleExport} className="bg-indigo-600 hover:bg-indigo-500 px-4 py-1.5 rounded-lg text-[10px] font-black uppercase">Export ({selectedIds.size})</button>
+                <button onClick={() => { setSelectionMode(false); setSelectedIds(new Set()); }} className="p-1.5 hover:bg-slate-800 rounded-lg text-slate-500">
+                  <X className="w-4 h-4" />
                 </button>
               </div>
             )}
           </div>
         </div>
 
-        <div className="relative">
+        <div className="relative max-w-xl">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
           <input 
             type="text"
-            placeholder="Search by title or artist..."
-            className="w-full bg-slate-900/50 border border-slate-800 rounded-xl py-2.5 pl-10 pr-6 focus:ring-1 focus:ring-indigo-500 focus:outline-none text-sm text-slate-300 transition-all placeholder:text-slate-600"
+            placeholder="Cari judul atau artis..."
+            className="w-full bg-slate-900 border border-slate-800 rounded-xl py-2 pl-10 pr-6 focus:ring-1 focus:ring-indigo-500 focus:outline-none text-sm text-slate-200 transition-all placeholder:text-slate-600"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -126,25 +129,25 @@ const SongLibrary: React.FC<SongLibraryProps> = ({ songs, onSelectSong, onAddSon
 
       <input type="file" ref={fileInputRef} onChange={handleFileChange} accept=".json" className="hidden" />
 
-      {/* List Content - Scrollable area */}
-      <div className="flex-1 overflow-y-auto bg-[#0a0f1d]">
+      {/* Table Area - Scrollable */}
+      <div className="flex-1 overflow-y-auto">
         <table className="w-full text-left border-collapse">
-          <thead className="sticky top-0 bg-[#0a0f1d] z-10">
-            <tr className="border-b border-slate-800/50 text-[10px] uppercase tracking-[0.2em] text-slate-500 font-bold">
-              {selectionMode && <th className="px-6 py-4 w-10">Select</th>}
-              <th className="px-6 py-4">Title</th>
-              <th className="px-6 py-4 hidden md:table-cell">Artist</th>
+          <thead className="sticky top-0 bg-[#0a0f1d] z-10 shadow-sm shadow-black/20">
+            <tr className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-black border-b border-slate-800/50">
+              {selectionMode && <th className="px-6 py-4 w-12"></th>}
+              <th className="px-6 py-4">Judul Lagu</th>
+              <th className="px-6 py-4 hidden md:table-cell">Artis</th>
               <th className="px-6 py-4 text-center w-20">Key</th>
               <th className="px-6 py-4 text-center w-20 hidden sm:table-cell">Tempo</th>
-              <th className="px-6 py-4 text-right w-28">Actions</th>
+              <th className="px-6 py-4 text-right w-32">Aksi</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody className="divide-y divide-slate-800/30">
             {sortedAndFilteredSongs.map(song => (
               <tr 
                 key={song.id}
-                className={`group border-b border-slate-800/30 hover:bg-slate-800/20 transition-colors cursor-pointer ${selectedIds.has(song.id) ? 'bg-indigo-600/5' : ''}`}
-                onClick={() => selectionMode ? null : onSelectSong(song)}
+                className={`group hover:bg-slate-800/20 transition-all cursor-pointer ${selectedIds.has(song.id) ? 'bg-indigo-600/5' : ''}`}
+                onClick={() => selectionMode ? toggleSongSelection(song.id, {} as any) : onSelectSong(song)}
               >
                 {selectionMode && (
                   <td className="px-6 py-4" onClick={(e) => toggleSongSelection(song.id, e)}>
@@ -158,32 +161,32 @@ const SongLibrary: React.FC<SongLibraryProps> = ({ songs, onSelectSong, onAddSon
                     </div>
                     <div>
                       <div className="text-sm font-bold text-slate-200 group-hover:text-indigo-400 transition-colors">{song.title}</div>
-                      <div className="text-[11px] text-slate-500 md:hidden">{song.artist}</div>
+                      <div className="text-[10px] text-slate-500 md:hidden font-medium uppercase mt-0.5">{song.artist}</div>
                     </div>
                   </div>
                 </td>
                 <td className="px-6 py-4 hidden md:table-cell">
-                  <span className="text-sm text-slate-400 font-medium">{song.artist}</span>
+                  <span className="text-xs text-slate-400 font-bold uppercase tracking-wider">{song.artist}</span>
                 </td>
                 <td className="px-6 py-4 text-center">
-                  <span className="text-xs font-black text-slate-500 bg-slate-800/50 px-2 py-1 rounded min-w-[30px] inline-block">{song.key}</span>
+                  <span className="text-[10px] font-black text-slate-400 bg-slate-800/50 px-2 py-1 rounded min-w-[32px] inline-block border border-slate-700/50">{song.key}</span>
                 </td>
                 <td className="px-6 py-4 text-center hidden sm:table-cell">
-                  <span className="text-xs font-bold text-slate-500">{song.tempo}</span>
+                  <span className="text-[10px] font-bold text-slate-500">{song.tempo}</span>
                 </td>
                 <td className="px-6 py-4 text-right">
                   <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                     <button 
                       onClick={(e) => { e.stopPropagation(); onEditSong(song); }}
-                      className="p-2 hover:bg-slate-700 rounded-lg text-slate-400 hover:text-indigo-400 transition-all"
-                      title="Edit Song"
+                      className="p-2 hover:bg-indigo-600/10 rounded-lg text-slate-500 hover:text-indigo-400 transition-all"
+                      title="Edit Lagu"
                     >
                       <Edit2 className="w-4 h-4" />
                     </button>
                     <button 
                       onClick={(e) => { e.stopPropagation(); onDeleteSong(song.id); }}
-                      className="p-2 hover:bg-red-500/10 rounded-lg text-slate-400 hover:text-red-500 transition-all"
-                      title="Delete Song"
+                      className="p-2 hover:bg-red-500/10 rounded-lg text-slate-500 hover:text-red-500 transition-all"
+                      title="Hapus Lagu"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -195,9 +198,9 @@ const SongLibrary: React.FC<SongLibraryProps> = ({ songs, onSelectSong, onAddSon
         </table>
         
         {sortedAndFilteredSongs.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-20 text-slate-600">
-            <Music className="w-12 h-12 mb-4 opacity-20" />
-            <p className="text-sm font-medium">No songs found in your library.</p>
+          <div className="flex flex-col items-center justify-center py-32 text-slate-700">
+            <Music className="w-12 h-12 mb-4 opacity-10" />
+            <p className="text-xs font-black uppercase tracking-widest opacity-30">Library Kosong</p>
           </div>
         )}
       </div>
