@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Song } from '../types';
 import { transposeText } from '../utils/chordUtils';
-import { ArrowLeft, Plus, Minus, Settings, Play, Pause, ListOrdered, Sparkles } from 'lucide-react';
+import { ArrowLeft, Plus, Minus, Settings, Play, Pause, Sparkles } from 'lucide-react';
 import { suggestArrangement } from '../services/geminiService';
 
 interface SongViewerProps {
@@ -25,9 +25,7 @@ const SongViewer: React.FC<SongViewerProps> = ({ song, onBack, onEdit }) => {
     let interval: number;
     if (isScrolling) {
       interval = window.setInterval(() => {
-        if (scrollRef.current) {
-          scrollRef.current.scrollTop += scrollSpeed;
-        }
+        if (scrollRef.current) scrollRef.current.scrollTop += scrollSpeed;
       }, 50);
     }
     return () => clearInterval(interval);
@@ -48,20 +46,19 @@ const SongViewer: React.FC<SongViewerProps> = ({ song, onBack, onEdit }) => {
     const transposed = transposeText(content, transpose);
     const lines = transposed.split('\n');
     
+    // Regex yang sama kuatnya untuk mendeteksi chord di UI
+    const chordRegex = /(\[[^\]]+\]|[A-G][#b]?(?:maj|min|m|M|dim|aug|sus|add|Δ|ø|°|[0-9\(\)\+#b\-\/])+)/g;
+
     return (
-      <div className="chord-font leading-relaxed tracking-tight">
+      <div className="chord-font leading-relaxed tracking-tight" style={{ fontSize: `${fontSize}px` }}>
         {lines.map((line, idx) => {
-          // Identify chords to highlight them in the viewer
-          // Matches bracketed [G] or common standalone chord patterns
-          // We use the same regex logic as transposeText to ensure consistency
-          const parts = line.split(/(\[[^\]]+\]|\b[A-G][#b]?(?:m|maj|min|aug|dim|sus|add|M)?(?:\d+)?(?:(?:\/)[A-G][#b]?)?)/g);
+          const parts = line.split(chordRegex);
           
           return (
             <div key={idx} className="whitespace-pre min-h-[1.2em]">
               {parts.map((part, pIdx) => {
                 const isBracketed = part.startsWith('[') && part.endsWith(']');
-                // Check for naked chord, but be careful of word boundaries
-                const isNakedChord = /^[A-G][#b]?(?:m|maj|min|aug|dim|sus|add|M)?(?:\d+)?(?:(?:\/)[A-G][#b]?)?$/.test(part);
+                const isNakedChord = /^[A-G][#b]?(?:maj|min|m|M|dim|aug|sus|add|Δ|ø|°|[0-9\(\)\+#b\-\/])+$/.test(part);
                 
                 if (isBracketed || isNakedChord) {
                   const display = isBracketed ? part.slice(1, -1) : part;
@@ -81,84 +78,57 @@ const SongViewer: React.FC<SongViewerProps> = ({ song, onBack, onEdit }) => {
   };
 
   return (
-    <div className="flex flex-col h-full bg-slate-900">
-      <div className="sticky top-0 z-20 bg-slate-800 border-b border-slate-700 px-6 py-4 flex flex-wrap items-center justify-between gap-4 shadow-md">
+    <div className="flex flex-col h-full bg-[#0a0f1d]">
+      <div className="sticky top-0 z-20 bg-[#111827] border-b border-slate-800/50 px-6 py-3 flex flex-wrap items-center justify-between gap-4 shadow-xl">
         <div className="flex items-center gap-4">
-          <button onClick={onBack} className="p-2 hover:bg-slate-700 rounded-full text-slate-400">
+          <button onClick={onBack} className="p-2 hover:bg-slate-800 rounded-xl text-slate-400">
             <ArrowLeft className="w-5 h-5" />
           </button>
           <div>
-            <h1 className="text-xl font-bold text-white">{song.title}</h1>
-            <p className="text-sm text-slate-400">{song.artist} • Original: {song.key} • {song.tempo} BPM</p>
+            <h1 className="text-lg font-bold text-white leading-tight">{song.title}</h1>
+            <p className="text-[11px] text-slate-500 font-medium uppercase tracking-wider">{song.artist} • {song.key} • {song.tempo} BPM</p>
           </div>
         </div>
 
-        <div className="flex items-center gap-6">
-          <div className="flex items-center gap-2 bg-slate-900 rounded-lg p-1 border border-slate-700">
-            <span className="text-xs font-semibold px-2 text-slate-500 uppercase">Transpose</span>
-            <button onClick={() => setTranspose(prev => prev - 1)} className="p-1 hover:bg-slate-700 rounded"><Minus className="w-4 h-4" /></button>
-            <span className="w-8 text-center font-bold text-indigo-400">{transpose > 0 ? `+${transpose}` : transpose}</span>
-            <button onClick={() => setTranspose(prev => prev + 1)} className="p-1 hover:bg-slate-700 rounded"><Plus className="w-4 h-4" /></button>
+        <div className="flex items-center gap-4">
+          <div className="flex items-center bg-slate-900 border border-slate-800 rounded-xl h-9">
+            <button onClick={() => setFontSize(prev => Math.max(10, prev - 1))} className="px-2 hover:text-white text-slate-500" title="Kecilkan Font">A-</button>
+            <button onClick={() => setFontSize(prev => Math.min(30, prev + 1))} className="px-2 hover:text-white text-slate-500 border-r border-slate-800" title="Besarkan Font">A+</button>
+            
+            <button onClick={() => setTranspose(prev => prev - 1)} className="px-3 hover:bg-slate-800 text-slate-400 transition-colors"><Minus className="w-3.5 h-3.5" /></button>
+            <span className="w-10 text-center text-xs font-black text-indigo-400 bg-slate-950 h-full flex items-center justify-center">{transpose > 0 ? `+${transpose}` : transpose}</span>
+            <button onClick={() => setTranspose(prev => prev + 1)} className="px-3 hover:bg-slate-800 text-slate-400 transition-colors"><Plus className="w-3.5 h-3.5" /></button>
           </div>
 
-          <div className="flex items-center gap-2 bg-slate-900 rounded-lg p-1 border border-slate-700">
-            <span className="text-xs font-semibold px-2 text-slate-500 uppercase">Size</span>
-            <button onClick={() => setFontSize(prev => Math.max(10, prev - 2))} className="p-1 hover:bg-slate-700 rounded"><Minus className="w-4 h-4" /></button>
-            <span className="w-6 text-center text-slate-300 text-sm">{fontSize}</span>
-            <button onClick={() => setFontSize(prev => Math.min(40, prev + 2))} className="p-1 hover:bg-slate-700 rounded"><Plus className="w-4 h-4" /></button>
-          </div>
+          <button onClick={() => setIsScrolling(!isScrolling)} className={`w-9 h-9 flex items-center justify-center rounded-xl transition-all ${isScrolling ? 'bg-red-500 text-white animate-pulse' : 'bg-slate-800 text-slate-400 hover:text-white'}`}>
+            {isScrolling ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+          </button>
 
-          <div className="flex items-center gap-2">
-            <button 
-              onClick={() => setIsScrolling(!isScrolling)}
-              className={`p-2 rounded-full transition-colors ${isScrolling ? 'bg-red-500 text-white' : 'bg-slate-700 text-slate-300'}`}
-            >
-              {isScrolling ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
-            </button>
-            <input 
-              type="range" min="1" max="10" 
-              className="w-24 h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-indigo-500"
-              value={scrollSpeed}
-              onChange={(e) => setScrollSpeed(parseInt(e.target.value))}
-            />
-          </div>
+          <button onClick={handleAIArrangement} disabled={isArranging} className="flex items-center gap-2 px-4 h-9 bg-indigo-600/10 text-indigo-400 border border-indigo-500/20 rounded-xl text-xs font-bold hover:bg-indigo-600/20 transition-all">
+            <Sparkles className="w-3.5 h-3.5" />
+            {isArranging ? '...' : 'AI Arrangement'}
+          </button>
 
-          <div className="flex gap-2">
-            <button 
-              onClick={handleAIArrangement}
-              disabled={isArranging}
-              className="flex items-center gap-2 px-3 py-1.5 bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 rounded-lg text-sm font-medium hover:bg-indigo-600/30 transition-all"
-            >
-              <Sparkles className="w-4 h-4" />
-              {isArranging ? '...' : 'AI Arrangement'}
-            </button>
-            <button onClick={onEdit} className="p-2 hover:bg-slate-700 rounded-lg text-slate-400">
-              <Settings className="w-5 h-5" />
-            </button>
-          </div>
+          <button onClick={onEdit} className="p-2 hover:bg-slate-800 rounded-xl text-slate-400 hover:text-white transition-colors">
+            <Settings className="w-5 h-5" />
+          </button>
         </div>
       </div>
 
-      <div 
-        ref={scrollRef}
-        className="flex-1 overflow-y-auto px-6 py-10 max-w-5xl mx-auto w-full scroll-smooth"
-      >
-        <div className="space-y-12" style={{ fontSize }}>
+      <div ref={scrollRef} className="flex-1 overflow-y-auto px-6 py-10 max-w-4xl mx-auto w-full scroll-smooth">
+        <div className="space-y-10">
           {displaySections.map((section, idx) => (
             <div key={`${section?.id}-${idx}`} className="group">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="h-px flex-1 bg-slate-800 group-hover:bg-indigo-500/30 transition-colors" />
-                <h3 className="text-sm font-bold tracking-widest text-slate-500 uppercase px-4 py-1 rounded bg-slate-800/50">
-                  {section?.name}
-                </h3>
-                <div className="h-px flex-1 bg-slate-800 group-hover:bg-indigo-500/30 transition-colors" />
+              <div className="flex items-center gap-4 mb-4">
+                <span className="text-[10px] font-black text-slate-600 uppercase tracking-[0.3em] bg-slate-800/30 px-3 py-1 rounded-md">{section?.name}</span>
+                <div className="h-px flex-1 bg-slate-800/50" />
               </div>
-              <div className="pl-4">
+              <div className="pl-2 border-l-2 border-slate-800/30 group-hover:border-indigo-500/30 transition-colors">
                 {section && renderContent(section.content)}
               </div>
             </div>
           ))}
-          <div className="h-96" />
+          <div className="h-64" />
         </div>
       </div>
     </div>
