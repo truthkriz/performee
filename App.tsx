@@ -11,7 +11,7 @@ const App: React.FC = () => {
   const [songs, setSongs] = useState<Song[]>([]);
   const [activeSong, setActiveSong] = useState<Song | null>(null);
 
-  // Load from LocalStorage on startup
+  // Load from LocalStorage
   useEffect(() => {
     const saved = localStorage.getItem('performee_songs');
     if (saved) {
@@ -25,7 +25,7 @@ const App: React.FC = () => {
     }
   }, []);
 
-  // Auto-save to LocalStorage
+  // Save to LocalStorage
   useEffect(() => {
     if (songs.length > 0) {
       localStorage.setItem('performee_songs', JSON.stringify(songs));
@@ -39,6 +39,14 @@ const App: React.FC = () => {
       return [newSong, ...prev];
     });
     setView('library');
+    setActiveSong(null);
+  };
+
+  const handleDeleteSong = (id: string) => {
+    if (window.confirm("Hapus lagu ini dari library?")) {
+      setSongs(prev => prev.filter(s => s.id !== id));
+      if (activeSong?.id === id) setActiveSong(null);
+    }
   };
 
   const handleImportSongs = (importedSongs: Song[]) => {
@@ -47,56 +55,57 @@ const App: React.FC = () => {
       const newSongs = importedSongs.filter(s => !existingIds.has(s.id));
       return [...newSongs, ...prev];
     });
-    alert(`${importedSongs.length} songs imported successfully!`);
+    alert(`${importedSongs.length} lagu berhasil ditambahkan!`);
   };
 
   return (
     <div className="flex h-screen overflow-hidden bg-[#0a0f1d] text-slate-200">
-      {/* Sidebar - Matching User Screenshot */}
-      <nav className="w-20 md:w-64 bg-[#111827] border-r border-slate-800/50 flex flex-col py-8">
-        <div className="px-6 mb-12 flex items-center gap-3">
-          <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/20">
-            <Music className="text-white w-6 h-6" />
+      {/* Sidebar - Compact & Static */}
+      <nav className="w-16 md:w-64 bg-[#0f172a] border-r border-slate-800/50 flex flex-col py-6">
+        <div className="px-4 md:px-6 mb-10 flex items-center gap-3">
+          <div className="w-8 h-8 md:w-10 md:h-10 bg-indigo-600 rounded-lg flex items-center justify-center shadow-lg shadow-indigo-500/20">
+            <Music className="text-white w-5 h-5 md:w-6 md:h-6" />
           </div>
-          <span className="hidden md:block text-xl font-bold tracking-tight text-white uppercase">PERFORMEE</span>
+          <span className="hidden md:block text-lg font-bold tracking-tight text-white uppercase">PERFORMEE</span>
         </div>
 
-        <div className="flex-1 px-4 space-y-4">
+        <div className="flex-1 px-2 md:px-4 space-y-2">
           <button 
             onClick={() => setView('library')}
-            className={`w-full flex items-center gap-4 px-4 py-3 rounded-xl transition-all ${view === 'library' ? 'bg-indigo-600 text-white shadow-lg' : 'hover:bg-slate-800/50 text-slate-400'}`}
+            className={`w-full flex items-center justify-center md:justify-start gap-4 px-3 py-3 rounded-xl transition-all ${view === 'library' ? 'bg-indigo-600 text-white shadow-lg' : 'hover:bg-slate-800/50 text-slate-400'}`}
           >
             <LayoutGrid className="w-5 h-5" />
             <span className="hidden md:block font-medium">Library</span>
           </button>
           
-          <button className="w-full flex items-center gap-4 px-4 py-3 rounded-xl hover:bg-slate-800/50 text-slate-400 transition-all cursor-not-allowed opacity-50">
+          <button className="w-full flex items-center justify-center md:justify-start gap-4 px-3 py-3 rounded-xl hover:bg-slate-800/50 text-slate-400 transition-all opacity-40 cursor-not-allowed">
             <ListMusic className="w-5 h-5" />
             <span className="hidden md:block font-medium">Setlists</span>
           </button>
         </div>
 
-        <div className="px-4 mt-auto space-y-2 pt-6 border-t border-slate-800/50">
-          <div className="flex items-center gap-4 px-4 py-3 text-slate-400">
+        <div className="px-2 md:px-4 mt-auto space-y-1 pt-6 border-t border-slate-800/50">
+          <div className="flex items-center justify-center md:justify-start gap-4 px-3 py-3 text-slate-500">
             <User className="w-5 h-5" />
-            <span className="hidden md:block font-medium text-sm">Creator: Rizkiprato</span>
+            <span className="hidden md:block font-medium text-[10px] truncate">Creator: Rizkiprato</span>
           </div>
           
-          <button className="w-full flex items-center gap-4 px-4 py-3 rounded-xl hover:bg-slate-800/50 text-slate-400 transition-all">
+          <button className="w-full flex items-center justify-center md:justify-start gap-4 px-3 py-3 rounded-xl hover:bg-slate-800/50 text-slate-400 transition-all">
             <Info className="w-5 h-5" />
             <span className="hidden md:block font-medium">About</span>
           </button>
         </div>
       </nav>
 
-      {/* Main Content */}
-      <main className="flex-1 overflow-y-auto bg-[#0a0f1d] relative">
+      {/* Main Content Area */}
+      <main className="flex-1 overflow-hidden flex flex-col bg-[#0a0f1d]">
         {view === 'library' && (
           <SongLibrary 
             songs={songs} 
             onSelectSong={(s) => { setActiveSong(s); setView('song-view'); }} 
             onAddSong={() => { setActiveSong(null); setView('song-edit'); }}
             onEditSong={(s) => { setActiveSong(s); setView('song-edit'); }}
+            onDeleteSong={handleDeleteSong}
             onImportLibrary={handleImportSongs}
           />
         )}
@@ -110,7 +119,7 @@ const App: React.FC = () => {
         )}
 
         {view === 'song-edit' && (
-          <div className="p-8">
+          <div className="flex-1 overflow-y-auto p-4 md:p-8">
             <SongEditor 
               song={activeSong || undefined} 
               onSave={handleSaveSong} 
