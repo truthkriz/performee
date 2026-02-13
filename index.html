@@ -13,12 +13,13 @@
       color: #f8fafc;
       margin: 0;
       padding: 0;
-      overflow: hidden; /* Mencegah scroll seluruh halaman agar fit 1 layar */
+      overflow: hidden; /* Lock main body scroll for fit-to-page effect */
+      height: 100vh;
     }
     .chord-font {
       font-family: 'JetBrains Mono', monospace;
     }
-    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar { width: 5px; }
     ::-webkit-scrollbar-track { background: transparent; }
     ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 10px; }
     ::-webkit-scrollbar-thumb:hover { background: #334155; }
